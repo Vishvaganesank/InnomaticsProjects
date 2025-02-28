@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #2d89e5;
+      color: white;
+    }
+
+    #game-container {
+      text-align: center;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      background-color: #ddd;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.3s;
+    }
+
+    .card.flipped {
+      background-color: #ffeb3b;
+    }
+
+    .card.matched {
+      background-color: #4caf50;
+    }
+
+    #score-timer {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .game-board {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="landing-page">
+      <h1>Memory Match Game</h1>
+      <div id="category-buttons">
+        <button class="category" onclick="startGame('fruits')">Fruits</button>
+        <button class="category" onclick="startGame('emojis')">Emojis</button>
+        <button class="category" onclick="startGame('animals')">Animals</button>
+        <button class="category" onclick="startGame('planets')">Planets</button>
+        <button class="category" onclick="startGame('landmarks')">Landmarks</button>
+      </div>
+    </div>
+
+    <div id="game-container" style="display:none;">
+      <h2>Memory Match</h2>
+      <div id="score-timer">
+        <span id="score">Score: 0</span>
+        <span id="timer">Time: 30s</span>
+      </div>
+      <div id="game-board" class="game-board"></div>
+      <button id="reset-button" style="display:none;" onclick="resetGame()">Reset Game</button>
+    </div>
+  </div>
+
+  <script>
+    const categories = {
+      fruits: ['🍎', '🍌', '🍒', '🍍', '🍓', '🍑', '🍊', '🍉'],
+      emojis: ['😀', '😎', '😍', '🥺', '😜', '😇', '😈', '🤖'],
+      animals: ['🐱', '🐶', '🐮', '🐷', '🐸', '🐯', '🐵', '🦄'],
+      planets: ['🌍', '🌕', '🌑', '☄️', '🌟', '🪐', '🛰️', '🌙'],
+      landmarks: ['🗼', '🏯', '🗽', '⛩️', '🕌', '🕍', '🛕', '⛪']
+    };
+
+    let selectedCategory = '';
+    let shuffledCards = [];
+    let flippedCards = [];
+    let matchedCards = [];
+    let score = 0;
+    let timer;
+    let remainingTime = 30;
+
+    function startGame(category) {
+      selectedCategory = category;
+      shuffledCards = shuffle([...categories[category], ...categories[category]]);
+      matchedCards = [];
+      flippedCards = [];
+      score = 0;
+      remainingTime = 30;
+
+      document.getElementById('landing-page').style.display = 'none';
+      document.getElementById('game-container').style.display = 'block';
+
+      createBoard();
+      startTimer();
+      updateScore();
+    }
+
+    function createBoard() {
+      const gameBoard = document.getElementById('game-board');
+      gameBoard.innerHTML = '';
+      shuffledCards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.dataset.index = index;
+        cardElement.addEventListener('click', () => handleCardClick(cardElement, card));
+        gameBoard.appendChild(cardElement);
+      });
+    }
+
+    function handleCardClick(cardElement, cardValue) {
+      if (flippedCards.length === 2 || cardElement.classList.contains('flipped') || matchedCards.includes(cardValue)) {
+        return;
+      }
+
+      cardElement.classList.add('flipped');
+      cardElement.textContent = cardValue;
+      flippedCards.push(cardElement);
+
+      if (flippedCards.length === 2) {
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [card1, card2] = flippedCards;
+      if (card1.textContent === card2.textContent) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        matchedCards.push(card1.textContent);
+        score += 10;
+      } else {
+        setTimeout(() => {
+          card1.classList.remove('flipped');
+          card2.classList.remove('flipped');
+        }, 1000);
+      }
+
+      flippedCards = [];
+      updateScore();
+      checkGameOver();
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = `Score: ${score}`;
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        document.getElementById('timer').textContent = `Time: ${remainingTime}s`;
+
+        if (remainingTime <= 0) {
+          clearInterval(timer);
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    function checkGameOver() {
+      if (matchedCards.length === shuffledCards.length / 2) {
+        clearInterval(timer);
+        endGame(true);
+      }
+    }
+
+    function endGame(won) {
+      const message = won ? 'You Win!' : 'Game Over!';
+      alert(`${message} Your Score: ${score}`);
+      document.getElementById('reset-button').style.display = 'block';
+    }
+
+    function resetGame() {
+      document.getElementById('reset-button').style.display = 'none';
+      document.getElementById('landing-page').style.display = 'block';
+      document.getElementById('game-container').style.display = 'none';
+    }
+
+    function shuffle(array) {
+      let currentIndex = array.length, randomIndex, temporaryValue;
+      while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+      return array;
+    }
+  </script>
+</body>
+</html>
